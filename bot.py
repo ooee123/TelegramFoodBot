@@ -13,7 +13,7 @@ def main():
     chatroom = int(open("chatroom_id").read())
 
     connection = ChatroomConnection(token, chatroom)
-    config = Config("stickers.json")
+    config = Config("config.json")
     print(config.getLastOffset())
     newMessages = connection.getUpdates(offset = config.getLastOffset())["results"]
 
