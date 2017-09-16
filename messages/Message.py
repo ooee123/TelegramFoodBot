@@ -1,15 +1,13 @@
-class Message:
 
-    def __init__(self, date, from, id):
-        self.date = date
-        self.from = from
-        self.id = id
+class Message(object):
+    def __init__(self, json):
+        self.date = json["date"]
+        self.sender = json["from"]
+        self.message_id = json["message_id"]
 
-    def jsonToMessage(json):
-        if "text" in json:
-            # Is text
-        elif "sticker" in json:
-            # Is a sticker
-
+#    def __init__(self, date, sender, id):
+#        self.date = date
+#        self.sender = sender 
+#        self.id = id
     def __str__(self):
-        raise "IMPLEMENT ME"
+        print(self.sender)
