@@ -31,32 +31,27 @@ def main():
         
     bot = Bot(token, chatroom, timeout=60)
     
-    while True:
+    if True:
         messages = bot.getNewMessages()
-        stickerMessages = getStickerMessages(messages)
 
+        stickerMessages = getStickerMessages(messages)
         for stickerMessage in stickerMessages:
             if stickerMessage.getSticker() == MORNING_STICKER:
-                sender = int(stickerMessage.sender["id"])
-                timestamp = int(stickerMessage.date)
-                if sender not in users:
-                    users[sender] = MorningEntry(stickerMessage.sender["first_name"])
-                users[sender].setLastMorning(timestamp)
+                sender_id = int(stickerMessage.sender["id"])
+                if sender_id not in users:
+                    users[sender_id] = MorningEntry(stickerMessage.sender["first_name"])
+                users[sender_id].setLastMorning(int(stickerMessage.date))
+
+        botCommands = getBotCommands(messages)
+        for botCommand in botCommands:
+            if botCommand.text == "/morningStats":
+                strings = [str(users[s]) for s in users.keys()]
+                string = "\n".join(strings)
+                bot.connection.sendMessage(string)
 
         json.dump(users, open(morningJSON, "w"), cls=MyJSONEncoder)
 
-        botCommands = getBotCommands(messages)
-        
-        for botCommand in botCommands:
-            if botCommand.text == "/morningStats":
-                string = ""
-                print(users)
-                for user in users.keys():
-                    
-                    print(string)
-                    string = string + "\n{name}: {totalMornings}".format(name=users[user].getName(), totalMornings=users[user].getTotalMornings())
-                print(string)
-                bot.connection.sendMessage(string)
+def processStickers(messages)
 
 def printJSON(message):
     print(json.dumps(message, indent=4, sort_keys=True, separators=(',', ': ')))
@@ -81,41 +76,65 @@ class MyJSONEncoder(JSONEncoder):
             return json.JSONEncoder.default(self, obj)
 
 class MorningEntry():
-    def __init__(self, name, json={"totalMornings": 0, "lastMorning": 0}):
+    def __init__(self, name, json={"totalMornings": 0, "lastMorning": 0, "currentStreak": 0, "highestStreak": 0}):
+        json["name"] = name
         self.json = json
-        self.json["name"] = name
 
     def getName(self):
         return self.json["name"]
 
     def getTotalMornings(self):
-        return self.json["totalMornings"]
+        return self.getDefaultZero("totalMornings")
 
     def setTotalMornings(self, totalMornings):
         self.json["totalMornings"] = totalMornings
 
     def getLastMorning(self):
-        return self.json["lastMorning"]
-        #return self.date
+        return self.getDefaultZero("lastMorning")
+
+    def getCurrentStreak(self):
+        return self.getDefaultZero("currentStreak")
+
+    def getHighestStreak(self):
+        return self.getDefaultZero("highestStreak")
+
+    def setCurrentStreak(self, streak):
+        self.json["currentStreak"] = streak
+        if streak > self.json["highestStreak"]:
+            self.json["highestStreak"] = streak
+
+    def getDefaultZero(self, attribute):
+        if attribute not in self.json:
+            self.json[attribute] = 0
+        return self.json[attribute]
+    
 
     def setLastMorning(self, timestamp):
-        lastMorning = self.getLastMorning()
-        if self.countsAsNewDay(lastMorning, timestamp):
+        if self.countsAsNewDay(timestamp):
+            if isContinuingStreak(timestamp):
+                self.setCurrentStreak(self.getCurrentStreak() + 1)
             self.setTotalMornings(self.getTotalMornings() + 1)
         self.json["lastMorning"] = timestamp
 
-    def countsAsNewDay(self, lastTimestamp, timestamp):
+    def isContinuingStreak(self, timestamp):
+        return self.getOrdinalDayThatCounts(timestamp) == self.getOrdinalDayThatCounts(self.getLastMorning()) + 1
+
+    def countsAsNewDay(self, timestamp):
+        newDay = self.getOrdinalDayThatCounts(timestamp)
+        lastDay = self.getOrdinalDayThatCounts(self.getLastMorning())
+        return newDay > lastDay
+
+    def getOrdinalDayThatCounts(self, timestamp):
         newDate = datetime.fromtimestamp(timestamp)
         newHour = newDate.hour
         newDay = newDate.toordinal()
 
-        lastDate = datetime.fromtimestamp(lastTimestamp)
-        #lastHour = lastDate.hour
-        lastDay = lastDate.toordinal()
-
         if newHour < 4:
             newDay = newDay - 1
 
-        return newDay > lastDay
+        return newDay
+
+    def __str__(self):
+        return "{name}: Total: {total}, Streak: {streak}, High: {high}".format(name=self.getName(), total=self.getTotalMornings(), streak=self.getCurrentStreak(), high=self.getHighestStreak())
 
 main()
