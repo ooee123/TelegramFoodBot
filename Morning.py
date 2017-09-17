@@ -13,45 +13,48 @@ from messages.Text import Text
 
 MORNING_STICKER = "CAADAgADEQEAAtQ7SgJzg0f_OmyrNQI"
 
-def main():
-    if len(sys.argv) < 3:
-        print("Usage {0} <bot_token> <chatroom_id> <morning.json>".format(sys.argv[0]))
-        sys.exit(-1)
-    token = sys.argv[1]
-    chatroom = int(sys.argv[2])
-    morningJSON = sys.argv[3]
-    if os.path.isfile(morningJSON):
-        users = json.load(open(morningJSON, "r"))
-        newUsers = {}
-        for user_id in users.keys():
-            newUsers[int(user_id)] = MorningEntry(users[user_id]["name"], users[user_id])
-        users = newUsers
-    else:
-        users = {}
-        
-    bot = Bot(token, chatroom, timeout=60)
-    
-    if True:
-        messages = bot.getNewMessages()
+class Morning:
+    def __init__(self, token, chatroom, morningJSON):
+        self.morningJSON = morningJSON
+        self.users = self.loadMorningJSON()
+        self.bot = Bot(token, chatroom, timeout=60)
 
+    def loadMorningJSON(self):
+        if os.path.isfile(self.morningJSON):
+            users = json.load(open(self.morningJSON, "r"))
+            newUsers = {}
+            for user_id in users.keys():
+                newUsers[int(user_id)] = MorningEntry(users[user_id]["name"], users[user_id])
+            return newUsers
+        else:
+            return {}
+
+    def saveMorningJSON(self):
+        json.dump(self.users, open(self.morningJSON, "w"), cls=MyJSONEncoder)
+
+    def processStickers(self, messages):
         stickerMessages = getStickerMessages(messages)
         for stickerMessage in stickerMessages:
             if stickerMessage.getSticker() == MORNING_STICKER:
                 sender_id = int(stickerMessage.sender["id"])
-                if sender_id not in users:
-                    users[sender_id] = MorningEntry(stickerMessage.sender["first_name"])
-                users[sender_id].setLastMorning(int(stickerMessage.date))
+                if sender_id not in self.users:
+                    self.users[sender_id] = MorningEntry(stickerMessage.sender["first_name"])
+                self.users[sender_id].setLastMorning(int(stickerMessage.date))
 
+    def processBotCommands(self, messages):
         botCommands = getBotCommands(messages)
         for botCommand in botCommands:
             if botCommand.text == "/morningStats":
-                strings = [str(users[s]) for s in users.keys()]
+                strings = [str(self.users[s]) for s in self.users.keys()]
                 string = "\n".join(strings)
-                bot.connection.sendMessage(string)
+                self.bot.connection.sendMessage(string)
 
-        json.dump(users, open(morningJSON, "w"), cls=MyJSONEncoder)
-
-def processStickers(messages)
+    def start(self):
+        if True:
+            messages = self.bot.getNewMessages()
+            self.processStickers(messages)
+            self.processBotCommands(messages)
+            self.saveMorningJSON()
 
 def printJSON(message):
     print(json.dumps(message, indent=4, sort_keys=True, separators=(',', ': ')))
@@ -111,8 +114,10 @@ class MorningEntry():
 
     def setLastMorning(self, timestamp):
         if self.countsAsNewDay(timestamp):
-            if isContinuingStreak(timestamp):
+            if self.isContinuingStreak(timestamp):
                 self.setCurrentStreak(self.getCurrentStreak() + 1)
+            else:
+                self.setCurrentStreak(1)
             self.setTotalMornings(self.getTotalMornings() + 1)
         self.json["lastMorning"] = timestamp
 
@@ -136,5 +141,15 @@ class MorningEntry():
 
     def __str__(self):
         return "{name}: Total: {total}, Streak: {streak}, High: {high}".format(name=self.getName(), total=self.getTotalMornings(), streak=self.getCurrentStreak(), high=self.getHighestStreak())
+
+def main():
+    if len(sys.argv) < 3:
+        print("Usage {0} <bot_token> <chatroom_id> <morning.json>".format(sys.argv[0]))
+        sys.exit(-1)
+    token = sys.argv[1]
+    chatroom = int(sys.argv[2])
+    morningJSON = sys.argv[3]
+    morning = Morning(token, chatroom, morningJSON)
+    morning.start()
 
 main()
