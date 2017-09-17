@@ -1,5 +1,3 @@
-#from messages.Message import Message
-#from messages import Message
 from messages.Message import Message
 
 class Text(Message):
