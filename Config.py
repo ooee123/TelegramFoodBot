@@ -19,10 +19,10 @@ class Config:
         self.config["last_offset"] = int(last_offset)
         self.saveConfig()
 
-    def getAttribute(self, attribute):
+    def getAttribute(self, attribute, default):
         if attribute not in self.config:
-            self.config[attribute] : None
+            self.config[attribute] = default 
         return self.config[attribute]
 
     def setAttribute(self, attribute, value):
-        self.config[attribute] : value
+        self.config[attribute] = value
