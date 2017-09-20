@@ -89,7 +89,7 @@ class MyJSONEncoder(JSONEncoder):
             return json.JSONEncoder.default(self, obj)
 
 class MorningEntry():
-    def __init__(self, name, json={"totalMornings": 0, "lastMorning": 0, "currentStreak": 0, "highestStreak": 0}):
+    def __init__(self, name, json={"totalMornings": 0, "lastMorning": 0, "currentStreak": 0, "highestStreak": 0, "firstMornings": 0}):
         json["name"] = name
         self.json = json
 
@@ -119,11 +119,16 @@ class MorningEntry():
         if streak > self.json["highestStreak"]:
             self.json["highestStreak"] = streak
 
+    def getFirstMornings(self):
+        return self.getDefaultZero("firstMornings")
+
+    def addFirstMornings(self):
+        self.json["firstMornings"] = self.getFirstMornings() + 1
+
     def getDefaultZero(self, attribute):
         if attribute not in self.json:
             self.json[attribute] = 0
         return self.json[attribute]
-    
 
     def setLastMorning(self, timestamp):
         if self.countsAsNewDay(timestamp):

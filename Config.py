@@ -19,13 +19,10 @@ class Config:
         self.config["last_offset"] = int(last_offset)
         self.saveConfig()
 
-    def getStickers(self):
-        return self.config["stickers"]
+    def getAttribute(self, attribute):
+        if attribute not in self.config:
+            self.config[attribute] : None
+        return self.config[attribute]
 
-    def saveStickers(self, stickers):
-        self.config["stickers"] = stickers
-        self.saveConfig()
-
-    def putStickers(self, stickerName, stickerFilename):
-        self.config["stickers"][stickerName] = stickerFilename
-        self.saveConfig()
+    def setAttribute(self, attribute, value):
+        self.config[attribute] : value
