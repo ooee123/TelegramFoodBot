@@ -21,7 +21,7 @@ class Config:
 
     def getAttribute(self, attribute, default):
         if attribute not in self.config:
-            self.config[attribute] = default 
+            self.setAttribute(attribute, default)
         return self.config[attribute]
 
     def setAttribute(self, attribute, value):

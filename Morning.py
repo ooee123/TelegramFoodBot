@@ -43,6 +43,12 @@ class Morning:
                     self.users[sender_id] = MorningEntry(stickerMessage.sender["first_name"])
                 self.users[sender_id].setLastMorning(int(stickerMessage.date))
                 self.users[sender_id].setName(stickerMessage.sender["first_name"])
+                config = self.bot.config
+                lastMorningOf = config.getAttribute("morningOf", 0)
+                todayMorningOf = self.users[sender_id].getOrdinalDayThatCounts(int(stickerMessage.date))
+                if todayMorningOf > lastMorningOf:
+                    self.users[sender_id].addFirstMornings()
+                    config.setAttribute("morningOf", todayMorningOf)
 
     def processBotCommands(self, messages):
         botCommands = getBotCommands(messages)
@@ -89,7 +95,7 @@ class MyJSONEncoder(JSONEncoder):
             return json.JSONEncoder.default(self, obj)
 
 class MorningEntry():
-    def __init__(self, name, json={"totalMornings": 0, "lastMorning": 0, "currentStreak": 0, "highestStreak": 0, "firstMornings": 0}):
+    def __init__(self, name, json={"totalMornings": 0, "lastMorning": 0, "currentStreak": 0, "highestStreak": 0, "firstMornings": 0, "firstMorningPerDay": {}}):
         json["name"] = name
         self.json = json
 
@@ -126,8 +132,11 @@ class MorningEntry():
         self.json["firstMornings"] = self.getFirstMornings() + 1
 
     def getDefaultZero(self, attribute):
+        return self.getElseDefault(attribute, 0)
+
+    def getElseDefault(self, attribute, default):
         if attribute not in self.json:
-            self.json[attribute] = 0
+            self.json[attribute] = default
         return self.json[attribute]
 
     def setLastMorning(self, timestamp):
@@ -137,6 +146,7 @@ class MorningEntry():
             else:
                 self.setCurrentStreak(1)
             self.setTotalMornings(self.getTotalMornings() + 1)
+            self.setFirstMorningOnDay(timestamp)
         self.json["lastMorning"] = timestamp
 
     def isContinuingStreak(self, timestamp):
@@ -151,11 +161,19 @@ class MorningEntry():
         newDate = datetime.fromtimestamp(timestamp)
         newHour = newDate.hour
         newDay = newDate.toordinal()
-
         if newHour < 4:
             newDay = newDay - 1
-
         return newDay
+
+    def getFirstMorningPerDay(self):
+        return self.getElseDefault("firstMorningPerDay", {})
+
+    def setFirstMorningOnDay(self, timestamp):
+        day = str(self.getOrdinalDayThatCounts(timestamp))
+        #firstMorningPerDay = self.getFirstMorningsPerDay()
+        #if day not in firstMorningPerDay.keys():
+            #firstMorningPerDay[day] = timestamp
+        self.getFirstMorningPerDay()[day] = timestamp
 
     def __str__(self):
         return "{name}: Total: {total}, Streak: {streak}, High: {high}".format(name=self.getName(), total=self.getTotalMornings(), streak=self.getCurrentStreak(), high=self.getHighestStreak())
