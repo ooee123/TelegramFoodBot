@@ -10,6 +10,7 @@ from json import JSONEncoder
 from messages.Sticker import Sticker
 from messages.BotCommand import BotCommand
 from messages.Text import Text
+from messages.Message import Message
 
 MORNING_STICKER = "CAADAgADEQEAAtQ7SgJzg0f_OmyrNQI"
 
@@ -38,8 +39,10 @@ class Morning:
             if stickerMessage.getSticker() == MORNING_STICKER:
                 sender_id = int(stickerMessage.sender["id"])
                 if sender_id not in self.users:
+                    print("{sender_id} is not in self.users.keys(). Making one with name {name}".format(sender_id=sender_id, name=stickerMessage.sender["first_name"]))
                     self.users[sender_id] = MorningEntry(stickerMessage.sender["first_name"])
                 self.users[sender_id].setLastMorning(int(stickerMessage.date))
+                self.users[sender_id].setName(stickerMessage.sender["first_name"])
 
     def processBotCommands(self, messages):
         botCommands = getBotCommands(messages)
@@ -50,14 +53,18 @@ class Morning:
                 self.bot.connection.sendMessage(string)
 
     def start(self):
-        if True:
+        while True:
             messages = self.bot.getNewMessages()
+            
+            with open("application.log", "a") as myfile:
+                myfile.write(json.dumps(messages, indent=4, sort_keys=True, separators=(',', ': '), cls=MyJSONEncoder))
+
             self.processStickers(messages)
             self.processBotCommands(messages)
             self.saveMorningJSON()
 
 def printJSON(message):
-    print(json.dumps(message, indent=4, sort_keys=True, separators=(',', ': ')))
+    print(json.dumps(message, indent=4, sort_keys=True, separators=(',', ': '), cls=MyJSONEncoder))
 
 def getStickerMessages(messages):
     return [m for m in messages if isinstance(m, Sticker)]
@@ -73,7 +80,9 @@ def filterMessageByType(messages, messageType):
 
 class MyJSONEncoder(JSONEncoder):
     def default(self, obj):
-        if isinstance(obj, MorningEntry):
+        if isinstance(obj, Message):
+            return obj.json
+        elif isinstance(obj, MorningEntry):
             return obj.json
         else:
             return json.JSONEncoder.default(self, obj)
@@ -85,6 +94,9 @@ class MorningEntry():
 
     def getName(self):
         return self.json["name"]
+
+    def setName(self, name):
+        self.json["name"] = name
 
     def getTotalMornings(self):
         return self.getDefaultZero("totalMornings")

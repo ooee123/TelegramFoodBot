@@ -1,6 +1,7 @@
 
 class Message(object):
     def __init__(self, json):
+        self.json = json
         self.date = json["date"]
         self.sender = json["from"]
         self.message_id = json["message_id"]
