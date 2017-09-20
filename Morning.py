@@ -48,7 +48,8 @@ class Morning:
         botCommands = getBotCommands(messages)
         for botCommand in botCommands:
             if botCommand.text == "/morningStats":
-                strings = [str(self.users[s]) for s in self.users.keys()]
+                sortedMornings = sorted(self.users.values(), key=lambda entry: entry.getTotalMornings(), reverse=True)
+                strings = [str(morning) for morning in sortedMornings]
                 string = "\n".join(strings)
                 self.bot.connection.sendMessage(string)
 
