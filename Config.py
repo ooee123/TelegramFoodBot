@@ -13,11 +13,10 @@ class Config:
         json.dump(self.config, open(self.config_filename, "w"))
 
     def getLastOffset(self):
-        return self.config["last_offset"]
+        return self.getAttribute("last_offset", -1)
 
     def setLastOffset(self, last_offset):
-        self.config["last_offset"] = int(last_offset)
-        self.saveConfig()
+        self.setAttribute("last_offset", int(last_offset))
 
     def getAttribute(self, attribute, default):
         if attribute not in self.config:
@@ -26,3 +25,4 @@ class Config:
 
     def setAttribute(self, attribute, value):
         self.config[attribute] = value
+        self.saveConfig()
