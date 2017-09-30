@@ -14,7 +14,10 @@ class Bot:
     def getNewMessages(self):
         lastOffset = self.config.getLastOffset()
         newUpdates = self.connection.getUpdates(offset = lastOffset + 1, timeout=self.timeout)["result"]
-        messages = [MessageBuilder.buildMessage(update["message"]) for update in newUpdates]
+        messages = []
+        for update in newUpdates:
+            if "message" in update.keys():
+                messages.append(MessageBuilder.buildMessage(update["message"]))
         newLastOffset = lastOffset
         for newUpdate in newUpdates:
             newLastOffset = max(newLastOffset, getUpdateID(newUpdate))
