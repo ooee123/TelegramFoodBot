@@ -7,22 +7,36 @@ from Bot import Bot
 import json
 from json import JSONEncoder
 
-from messages.Sticker import Sticker
-from messages.BotCommand import BotCommand
-from messages.Text import Text
-from messages.Message import Message
+from JsonSerializable import JsonSerializable
+#from messages.Sticker import Sticker
+#from messages.BotCommand import BotCommand
+#from messages.Text import Text
+#from messages.Message import Message
+from plot import plot
+import telegram
+from telegram.ext import Updater
+from telegram.ext import MessageHandler
+from telegram.ext import CommandHandler
+from telegram.ext import Filters 
+from Config import Config
 
 MORNING_STICKER = "CAADAgADEQEAAtQ7SgJzg0f_OmyrNQI"
 
 class Morning:
     def __init__(self, token, chatroom, morningJSON):
+        #self.bot = telegram.Bot(token=token)
+        self.chatroom = chatroom
+        self.updater = Updater(token=token)
+        self.config = Config("{chatroom}.conf.json".format(chatroom=str(chatroom)))
         self.morningJSON = morningJSON
-        self.users = self.loadMorningJSON()
-        self.bot = Bot(token, chatroom, timeout=60)
+        self.users = self.loadMorningJSON(self.morningJSON)
 
-    def loadMorningJSON(self):
-        if os.path.isfile(self.morningJSON):
-            users = json.load(open(self.morningJSON, "r"))
+    # Input: Filepath to morning.json
+    # Return: Dictionary of user_id to MorningEntry
+    # Map<Integer, MorningEntry>
+    def loadMorningJSON(self, morningJSON):
+        if os.path.isfile(morningJSON):
+            users = json.load(open(morningJSON, "r"))
             newUsers = {}
             for user_id in users.keys():
                 newUsers[int(user_id)] = MorningEntry(users[user_id]["name"], users[user_id])
@@ -33,68 +47,56 @@ class Morning:
     def saveMorningJSON(self):
         json.dump(self.users, open(self.morningJSON, "w"), cls=MyJSONEncoder)
 
-    def processStickers(self, messages):
-        stickerMessages = getStickerMessages(messages)
-        for stickerMessage in stickerMessages:
-            if stickerMessage.getSticker() == MORNING_STICKER:
-                sender_id = int(stickerMessage.sender["id"])
-                if sender_id not in self.users:
-                    print("{sender_id} is not in self.users.keys(). Making one with name {name}".format(sender_id=sender_id, name=stickerMessage.sender["first_name"]))
-                    self.users[sender_id] = MorningEntry(stickerMessage.sender["first_name"])
-                self.users[sender_id].setLastMorning(int(stickerMessage.date))
-                self.users[sender_id].setName(stickerMessage.sender["first_name"])
-                config = self.bot.config
-                lastMorningOf = config.getAttribute("morningOf", 0)
-                todayMorningOf = self.users[sender_id].getOrdinalDayThatCounts(int(stickerMessage.date))
-                if todayMorningOf > lastMorningOf:
-                    self.users[sender_id].addFirstMornings()
-                    config.setAttribute("morningOf", todayMorningOf)
+    def morningSticker(self, bot, update, args={}):
+        senderId = update.message.from_user.id 
+        senderName = update.message.from_user.first_name
+        messageDate = update.message.date.timestamp()
+        if senderId not in self.users:
+            self.users[senderId] = MorningEntry(senderName)
+        self.users[senderId].setLastMorning(messageDate)
+        #self.users[senderId].setName(senderName)
+        lastMorningOf = self.config.getAttribute("morningOf")
+        todayMorningOf = getOrdinalDayThatCounts(messageDate)
+        if todayMorningOf > lastMorningOf:
+            self.users[senderId].addFirstMornings()
+            self.config.setAttribute("morningOf", todayMorningOf)
+        
+    def morningStats(self, bot, update, args={}):
+        sortedMornings = sorted(self.users.values(), key=lambda entry: entry.getTotalMornings(), reverse=True)
+        strings = [str(morning) for morning in sortedMornings]
+        text = "\n".join(strings)
+        bot.send_message(chat_id=self.chatroom, text=text)
 
-    def processBotCommands(self, messages):
-        botCommands = getBotCommands(messages)
-        for botCommand in botCommands:
-            if botCommand.text == "/morningStats":
-                sortedMornings = sorted(self.users.values(), key=lambda entry: entry.getTotalMornings(), reverse=True)
-                strings = [str(morning) for morning in sortedMornings]
-                string = "\n".join(strings)
-                self.bot.connection.sendMessage(string)
+    def morningGraph(self, bot, update, args={}):
+        senderId = update.message.from_user.id 
+        if senderId in self.users:
+            saveas = self.users[senderId].getName() + ".png"
+            firstMorningPerDay = self.users[senderId].getFirstMorningPerDay()
+            plot.plotFirstMorningPerDay(firstMorningPerDay, saveas) 
+            bot.send_photo(chat_id=self.chatroom, photo=open(saveas, "rb"))
 
     def start(self):
-        while True:
-            messages = self.bot.getNewMessages()
-            
-            with open("application.log", "a") as myfile:
-                myfile.write(json.dumps(messages, indent=4, sort_keys=True, separators=(',', ': '), cls=MyJSONEncoder))
+        dispatcher = self.updater.dispatcher
+        morning_sticker_handler = MessageHandler(Filters.sticker, self.morningSticker)
+        dispatcher.add_handler(morning_sticker_handler)
+        morningStats_handler = CommandHandler('morningStats', self.morningStats)
+        dispatcher.add_handler(morningStats_handler)
+        morningGraph_handler = CommandHandler('morningGraph', self.morningGraph)
+        dispatcher.add_handler(morningGraph_handler)
 
-            self.processStickers(messages)
-            self.processBotCommands(messages)
-            self.saveMorningJSON()
+        self.updater.start_polling()
 
-def printJSON(message):
-    print(json.dumps(message, indent=4, sort_keys=True, separators=(',', ': '), cls=MyJSONEncoder))
-
-def getStickerMessages(messages):
-    return [m for m in messages if isinstance(m, Sticker)]
-
-def getTextMessages(messages):
-    return filterMessageByType(messages, Text)
-
-def getBotCommands(messages):
-    return filterMessageByType(messages, BotCommand)
-
-def filterMessageByType(messages, messageType):
-    return [m for m in messages if isinstance(m, messageType)]
+def jsonToStr(message):
+    return json.dumps(message, indent=4, sort_keys=True, separators=(',', ': '), cls=MyJSONEncoder)
 
 class MyJSONEncoder(JSONEncoder):
     def default(self, obj):
-        if isinstance(obj, Message):
-            return obj.json
-        elif isinstance(obj, MorningEntry):
-            return obj.json
+        if isinstance(obj, JsonSerializable):
+            return obj.__json__()
         else:
             return json.JSONEncoder.default(self, obj)
 
-class MorningEntry():
+class MorningEntry(JsonSerializable):
     def __init__(self, name, json={"totalMornings": 0, "lastMorning": 0, "currentStreak": 0, "highestStreak": 0, "firstMornings": 0, "firstMorningPerDay": {}}):
         json["name"] = name
         self.json = json
@@ -150,30 +152,25 @@ class MorningEntry():
         self.json["lastMorning"] = timestamp
 
     def isContinuingStreak(self, timestamp):
-        return self.getOrdinalDayThatCounts(timestamp) == self.getOrdinalDayThatCounts(self.getLastMorning()) + 1
+        return getOrdinalDayThatCounts(timestamp) == getOrdinalDayThatCounts(self.getLastMorning()) + 1
 
     def countsAsNewDay(self, timestamp):
-        newDay = self.getOrdinalDayThatCounts(timestamp)
-        lastDay = self.getOrdinalDayThatCounts(self.getLastMorning())
+        newDay = getOrdinalDayThatCounts(timestamp)
+        lastDay = getOrdinalDayThatCounts(self.getLastMorning())
         return newDay > lastDay
-
-    def getOrdinalDayThatCounts(self, timestamp):
-        newDate = datetime.fromtimestamp(timestamp)
-        newHour = newDate.hour
-        newDay = newDate.toordinal()
-        if newHour < 4:
-            newDay = newDay - 1
-        return newDay
 
     def getFirstMorningPerDay(self):
         return self.getElseDefault("firstMorningPerDay", {})
 
     def setFirstMorningOnDay(self, timestamp):
-        day = str(self.getOrdinalDayThatCounts(timestamp))
+        day = str(getOrdinalDayThatCounts(timestamp))
         #firstMorningPerDay = self.getFirstMorningsPerDay()
         #if day not in firstMorningPerDay.keys():
             #firstMorningPerDay[day] = timestamp
         self.getFirstMorningPerDay()[day] = timestamp
+
+    def __json__(self):
+        return self.json
 
     def __str__(self):
         return "{name}: Total: {total}, Streak: {streak}, High: {high}".format(name=self.getName(), total=self.getTotalMornings(), streak=self.getCurrentStreak(), high=self.getHighestStreak())
@@ -187,5 +184,13 @@ def main():
     morningJSON = sys.argv[3]
     morning = Morning(token, chatroom, morningJSON)
     morning.start()
+
+def getOrdinalDayThatCounts(timestamp):
+    newDate = datetime.fromtimestamp(timestamp)
+    newHour = newDate.hour
+    newDay = newDate.toordinal()
+    if newHour < 4:
+        newDay = newDay - 1
+    return newDay
 
 main()

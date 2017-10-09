@@ -5,12 +5,12 @@ import matplotlib.pyplot as plt
 import datetime as dt
 from matplotlib.ticker import FuncFormatter as ff
 
-def plotFirstMorningPerDay(firstMorningPerDay):
+def plotFirstMorningPerDay(firstMorningPerDay, saveas):
     days = [int(day) for day in firstMorningPerDay.keys()]
     minutes = [timestamp2minuteOfDay(day) for day in firstMorningPerDay.values()]
-    plotMinutesVsDay(days, minutes)
+    plotMinutesVsDay(days, minutes, saveas)
 
-def plotMinutesVsDay(days, minutes):
+def plotMinutesVsDay(days, minutes, saveas, annotate=False):
     fig = plt.figure()
     ax = fig.add_subplot(1, 1, 1)
     ax.xaxis_date()
@@ -18,12 +18,12 @@ def plotMinutesVsDay(days, minutes):
 
     ax.plot_date(days, minutes)
 
-    for xy in zip(days, minutes):
-        ax.annotate(m2hm(xy[1], 0), xy=xy, textcoords='data')
+    if annotate:
+        for xy in zip(days, minutes):
+            ax.annotate(m2hm(xy[1], 0), xy=xy, textcoords='data')
 
     fig.autofmt_xdate()
-    return plt
-    plt.savefig('foo.png', bbox_inches='tight')
+    plt.savefig(saveas, bbox_inches='tight')
  
 def m2hm(minutes, i):
     h = int(minutes / 60)
