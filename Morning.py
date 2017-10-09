@@ -3,7 +3,7 @@ import sys
 import os
 from datetime import datetime
 from time import time
-from Bot import Bot
+#from Bot import Bot
 import json
 from json import JSONEncoder
 
