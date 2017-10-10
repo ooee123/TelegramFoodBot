@@ -5,10 +5,18 @@ import matplotlib.pyplot as plt
 import datetime as dt
 from matplotlib.ticker import FuncFormatter as ff
 
-def plotFirstMorningPerDay(firstMorningPerDay, saveas):
+#SINCE_HOW_MANY_DAYS = 14
+
+#timedelta = dt.timedelta(SINCE_HOW_MANY_DAYS)
+
+def plotFirstMorningPerDay(firstMorningPerDay, saveas, title):
+    #graphBeginning = dt.today() - timedelta
+    #firstMorningPerDay = [x in firstMorningPerDay.keys() if dt.fromtimestamp(x) > graphBeginning]
     days = [int(day) for day in firstMorningPerDay.keys()]
     minutes = [timestamp2minuteOfDay(day) for day in firstMorningPerDay.values()]
-    plotMinutesVsDay(days, minutes, saveas)
+    plt = plotMinutesVsDay(days, minutes, saveas)
+    plt.title(title)
+    plt.savefig(saveas, bbox_inches='tight')
 
 def plotMinutesVsDay(days, minutes, saveas, annotate=False):
     fig = plt.figure()
@@ -23,7 +31,7 @@ def plotMinutesVsDay(days, minutes, saveas, annotate=False):
             ax.annotate(m2hm(xy[1], 0), xy=xy, textcoords='data')
 
     fig.autofmt_xdate()
-    plt.savefig(saveas, bbox_inches='tight')
+    return plt
  
 def m2hm(minutes, i):
     h = int(minutes / 60)

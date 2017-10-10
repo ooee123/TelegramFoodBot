@@ -3,15 +3,10 @@ import sys
 import os
 from datetime import datetime
 from time import time
-#from Bot import Bot
 import json
 from json import JSONEncoder
 
 from JsonSerializable import JsonSerializable
-#from messages.Sticker import Sticker
-#from messages.BotCommand import BotCommand
-#from messages.Text import Text
-#from messages.Message import Message
 from plot import plot
 import telegram
 from telegram.ext import Updater
@@ -24,7 +19,6 @@ MORNING_STICKER = "CAADAgADEQEAAtQ7SgJzg0f_OmyrNQI"
 
 class Morning:
     def __init__(self, token, chatroom, morningJSON):
-        #self.bot = telegram.Bot(token=token)
         self.chatroom = chatroom
         self.updater = Updater(token=token)
         self.config = Config("{chatroom}.conf.json".format(chatroom=str(chatroom)))
@@ -70,9 +64,10 @@ class Morning:
     def morningGraph(self, bot, update, args={}):
         senderId = update.message.from_user.id 
         if senderId in self.users:
-            saveas = self.users[senderId].getName() + ".png"
+            senderName = self.users[senderId].getName()
+            saveas = senderName + ".png"
             firstMorningPerDay = self.users[senderId].getFirstMorningPerDay()
-            plot.plotFirstMorningPerDay(firstMorningPerDay, saveas) 
+            plot.plotFirstMorningPerDay(firstMorningPerDay, saveas, senderName)
             bot.send_photo(chat_id=self.chatroom, photo=open(saveas, "rb"))
 
     def start(self):
