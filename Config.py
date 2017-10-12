@@ -1,16 +1,17 @@
 import json
 import os
-class Config:
+from JsonSerializable import MyJSONEncoder
 
-    def __init__(self, config_filename):
+class Config:
+    def __init__(self, config_filename, init=lambda: {}):
         self.config_filename = config_filename
         if not os.path.isfile(config_filename):
-            self.config = {}
+            self.config = init()
         else:
             self.config = json.load(open(self.config_filename, "r"))
 
     def saveConfig(self):
-        json.dump(self.config, open(self.config_filename, "w"))
+        json.dump(self.config, open(self.config_filename, "w"), cls=MyJSONEncoder)
 
     def getAttribute(self, attribute, default=None):
         if attribute not in self.config:
