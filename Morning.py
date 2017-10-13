@@ -46,9 +46,6 @@ class Morning:
                 newUsers[int(user_id)] = MorningEntry(users[user_id]["name"], users[user_id])
             return newUsers
 
-    def saveMorningJSON(self):
-        json.dump(self.users, open(self.morningJSON, "w"), cls=MyJSONEncoder)
-
     def morningSticker(self, bot, update, args={}):
         senderId = update.message.from_user.id 
         senderName = update.message.from_user.first_name
@@ -98,7 +95,9 @@ def jsonToStr(message):
     return json.dumps(message, indent=4, sort_keys=True, separators=(',', ': '), cls=MyJSONEncoder)
 
 class MorningEntry(JsonSerializable):
-    def __init__(self, name, json={"currentStreak": 0, "highestStreak": 0, "firstToMorningCount": 0, "firstMorningPerDay": {}}):
+    def __init__(self, name, json=None):
+        if json == None:
+            json = {"currentStreak": 0, "highestStreak": 0, "firstToMorningCount": 0, "firstMorningPerDay": {}}
         json["name"] = name
         self.json = json
 
