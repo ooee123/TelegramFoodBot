@@ -1,71 +1,54 @@
-#!/usr/bin/python3
-import sys
-import os
 from datetime import datetime
-from time import time
+import time
 import json
 
 from JsonSerializable import JsonSerializable
-from JsonSerializable import MyJSONEncoder
 from plot import plot
-import telegram
-from telegram.ext import BaseFilter
-from telegram.ext import Updater
-from telegram.ext import MessageHandler
-from telegram.ext import CommandHandler
-from telegram.ext import Filters 
-from Config import Config
-
-import logging
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
 MORNING_STICKER = "CAADAgADEQEAAtQ7SgJzg0f_OmyrNQI"
 
 class Morning:
-    
-    def initConfig(self):
-        return {"morningOf": 0, "users": {}}
 
-    def __init__(self, token, chatroom):
+    def __init__(self, token, chatroom, config):
         self.chatroom = chatroom
-        self.updater = Updater(token=token)
-        self.config = Config("{chatroom}.conf.json".format(chatroom=str(chatroom)), init=self.initConfig)
-        self.users = self.initMorningJSON(self.config.getAttribute("users"))
-        self.config.setAttribute("users", self.users)
+        self.config = self.initConfig(config)
+        self.users = config.get("users")
 
-    # Input: Filepath to morning.json
-    # Return: Dictionary of user_id to MorningEntry
-    # Map<Integer, MorningEntry>
-    def initMorningJSON(self, morningJSON):
-        if not morningJSON:
-            return {}
+    def initConfig(self, config):
+        if config.get("morningOf") == None:
+            config.set("morningOf", 0)
+        users = config.get("users")
+        if users == None:
+            config.set("users", {})
         else:
-            users = morningJSON
             newUsers = {}
             for user_id in users.keys():
                 newUsers[int(user_id)] = MorningEntry(users[user_id]["name"], users[user_id])
-            return newUsers
-
+            config.set("users", newUsers)
+        return config
+            
     def morningSticker(self, bot, update, args={}):
         senderId = update.message.from_user.id 
         senderName = update.message.from_user.first_name
         messageDate = update.message.date.timestamp()
-        
         if senderId not in self.users.keys():
             self.users[senderId] = MorningEntry(senderName)
         self.users[senderId].setLastMorning(messageDate)
-        lastMorningOf = self.config.getAttribute("morningOf")
+        lastMorningOf = self.config.get("morningOf")
         todayMorningOf = getOrdinalDayThatCounts(messageDate)
         if todayMorningOf > lastMorningOf:
             self.users[senderId].incrementFirstMornings()
-            self.config.setAttribute("morningOf", todayMorningOf)
+            self.config.set("morningOf", todayMorningOf)
         self.config.saveConfig()
         
     def morningStats(self, bot, update, args={}):
         sortedMornings = sorted(self.users.values(), key=lambda entry: entry.getTotalMorningsCount(), reverse=True)
-        strings = [str(morning) for morning in sortedMornings]
+        todayOrdinalDay = getOrdinalDayThatCounts(time.time())
+        print(todayOrdinalDay)
+        strings = [morning.statsString(todayOrdinalDay) for morning in sortedMornings]
         text = "\n".join(strings)
-        bot.send_message(chat_id=self.chatroom, text=text)
+        if text:
+            bot.send_message(chat_id=self.chatroom, text=text)
 
     def morningGraph(self, bot, update, args={}):
         senderId = update.message.from_user.id 
@@ -86,13 +69,6 @@ class Morning:
         dispatcher.add_handler(morningGraph_handler)
 
         self.updater.start_polling()
-
-class MorningStickerFilter(BaseFilter):
-    def filter(self, message):
-        return message.sticker and MORNING_STICKER == message.sticker.file_id
-
-def jsonToStr(message):
-    return json.dumps(message, indent=4, sort_keys=True, separators=(',', ': '), cls=MyJSONEncoder)
 
 class MorningEntry(JsonSerializable):
     def __init__(self, name, json=None):
@@ -165,16 +141,13 @@ class MorningEntry(JsonSerializable):
         return self.json
 
     def __str__(self):
-        return "{name}: Total: {total}, Streak: {streak}, High: {high}".format(name=self.getName(), total=self.getTotalMorningsCount(), streak=self.getCurrentStreak(), high=self.getHighestStreak())
+        return self.json
 
-def main():
-    if len(sys.argv) < 2:
-        print("Usage {0} <bot_token> <chatroom_id>".format(sys.argv[0]))
-        sys.exit(-1)
-    token = sys.argv[1]
-    chatroom = int(sys.argv[2])
-    morning = Morning(token, chatroom)
-    morning.start()
+    def statsString(self, todayOrdinalDay):
+        lastOrdinalDay = getOrdinalDayThatCounts(self.getLastMorning())
+        if todayOrdinalDay - lastOrdinalDay > 1:
+            self.json["currentStreak"] = 0
+        return "{name}: Ttl: {total}, Str: {streak}, Hi: {high}".format(name=self.getName(), total=self.getTotalMorningsCount(), streak=self.getCurrentStreak(), high=self.getHighestStreak())
 
 def getOrdinalDayThatCounts(timestamp):
     newDate = datetime.fromtimestamp(timestamp)
@@ -184,4 +157,10 @@ def getOrdinalDayThatCounts(timestamp):
         newDay = newDay - 1
     return newDay
 
-main()
+def getOrdinalDayThatCounts(timestamp):
+    newDate = datetime.fromtimestamp(timestamp)
+    newHour = newDate.hour
+    newDay = newDate.toordinal()
+    if newHour < 4:
+        newDay = newDay - 1
+    return newDay
