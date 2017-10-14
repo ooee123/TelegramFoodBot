@@ -12,7 +12,7 @@ class Config:
             self.config = json.load(open(self.config_filename, "r"))
 
     def saveConfig(self):
-        json.dump(self.config, open(self.config_filename, "w"), cls=MyJSONEncoder)
+        json.dump(self.config, open(self.config_filename, "w"), sort_keys=True, indent=4, separators=(',', ': '), cls=MyJSONEncoder)
 
     def get(self, attribute, default=None):
         if attribute not in self.config:

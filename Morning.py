@@ -30,7 +30,7 @@ class Morning:
     def morningSticker(self, bot, update, args={}):
         senderId = update.message.from_user.id 
         senderName = update.message.from_user.first_name
-        messageDate = update.message.date.timestamp()
+        messageDate = int(update.message.date.timestamp())
         if senderId not in self.users.keys():
             self.users[senderId] = MorningEntry(senderName)
         self.users[senderId].setLastMorning(messageDate)
