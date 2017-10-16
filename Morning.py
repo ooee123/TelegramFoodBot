@@ -121,7 +121,6 @@ class MorningEntry(JsonSerializable):
     def setLastMorning(self, timestamp):
         if self.countsAsNewDay(timestamp):
             self.json["firstMorningPerDay"].append(timestamp)
-            self.setFirstMorningOnDay(timestamp)
             if self.isContinuingStreak(timestamp):
                 self.currentStreak += 1
             else:
