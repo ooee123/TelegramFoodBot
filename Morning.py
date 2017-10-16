@@ -44,7 +44,6 @@ class Morning:
     def morningStats(self, bot, update, args={}):
         sortedMornings = sorted(self.users.values(), key=lambda entry: entry.getTotalMorningsCount(), reverse=True)
         todayOrdinalDay = getOrdinalDayThatCounts(time.time())
-        print(todayOrdinalDay)
         strings = [morning.statsString(todayOrdinalDay) for morning in sortedMornings]
         text = "\n".join(strings)
         if text:
@@ -73,54 +72,61 @@ class Morning:
 class MorningEntry(JsonSerializable):
     def __init__(self, name, json=None):
         if json == None:
-            json = {"currentStreak": 0, "highestStreak": 0, "firstToMorningCount": 0, "firstMorningPerDay": {}}
+            json = {"firstToMorningCount": 0, "firstMorningPerDay": []}
         json["name"] = name
         self.json = json
+        days = [getOrdinalDayThatCounts(timestamp) for timestamp in json["firstMorningPerDay"]]
+        highestStreak = 0
+        currentStreak = 0
+        previousDay = 0
+        for currentDay in days:
+            if currentDay - previousDay == 1:
+                currentStreak += 1
+            else:
+                currentStreak = 1
+            if currentStreak > highestStreak:
+                highestStreak = currentStreak
+            previousDay = currentDay
+
+        today = getOrdinalDayThatCounts(time.time())
+        if today - previousDay > 1:
+            self.currentStreak = 0
+        self.days = days
+        self.highestStreak = highestStreak
+        self.currentStreak = currentStreak
 
     def getName(self):
         return self.json["name"]
 
     def getTotalMorningsCount(self):
-        return len(self.getFirstMorningPerDay())
+        return len(self.json["firstMorningPerDay"])
 
     def getLastMorning(self):
-        firstMorningPerDay = self.getFirstMorningPerDay()
-        if not firstMorningPerDay:
-            return 1
+        if len(self.json["firstMorningPerDay"]) == 0:
+            return 0
         else:
-            return max(firstMorningPerDay.values())
+            return max(self.json["firstMorningPerDay"])
 
     def getCurrentStreak(self):
-        return self.getDefaultZero("currentStreak")
+        return self.currentStreak
 
     def getHighestStreak(self):
-        return self.getDefaultZero("highestStreak")
-
-    def setCurrentStreak(self, streak):
-        self.json["currentStreak"] = streak
+        return self.highestStreak
 
     def getFirstToMorningCount(self):
-        return self.getDefaultZero("firstToMorningCount")
+        return self.json["firstToMorningCount"]
 
     def incrementFirstMornings(self):
         self.json["firstToMorningCount"] += 1
-
-    def getDefaultZero(self, attribute):
-        return self.getElseDefault(attribute, 0)
-
-    def getElseDefault(self, attribute, default):
-        if attribute not in self.json.keys():
-            self.json[attribute] = default
-        return self.json[attribute]
 
     def setLastMorning(self, timestamp):
         if self.countsAsNewDay(timestamp):
             self.setFirstMorningOnDay(timestamp)
             if self.isContinuingStreak(timestamp):
-                self.json["currentStreak"] += 1
+                self.currentStreak += 1
             else:
-                self.json["currentStreak"] = 1
-            self.json["highestStreak"] = max(self.json["highestStreak"], self.json["currentStreak"])
+                self.currentStreak = 1
+            self.highestStreak = max(self.highestStreak, self.currentStreak)
 
     def isContinuingStreak(self, timestamp):
         return getOrdinalDayThatCounts(timestamp) == getOrdinalDayThatCounts(self.getLastMorning()) + 1
@@ -131,11 +137,12 @@ class MorningEntry(JsonSerializable):
         return newDay > lastDay
 
     def getFirstMorningPerDay(self):
-        return self.getElseDefault("firstMorningPerDay", {})
+        return self.json["firstMorningPerDay"]
 
     def setFirstMorningOnDay(self, timestamp):
-        day = str(getOrdinalDayThatCounts(timestamp))
-        self.getFirstMorningPerDay()[day] = timestamp
+        day = getOrdinalDayThatCounts(timestamp)
+        if day not in self.days:
+            self.json["firstMorningPerDay"].append(timestamp)
 
     def __json__(self):
         return self.json
@@ -146,16 +153,8 @@ class MorningEntry(JsonSerializable):
     def statsString(self, todayOrdinalDay):
         lastOrdinalDay = getOrdinalDayThatCounts(self.getLastMorning())
         if todayOrdinalDay - lastOrdinalDay > 1:
-            self.json["currentStreak"] = 0
+            self.currentStreak = 0
         return "{name}: Ttl: {total}, Str: {streak}, Hi: {high}".format(name=self.getName(), total=self.getTotalMorningsCount(), streak=self.getCurrentStreak(), high=self.getHighestStreak())
-
-def getOrdinalDayThatCounts(timestamp):
-    newDate = datetime.fromtimestamp(timestamp)
-    newHour = newDate.hour
-    newDay = newDate.toordinal()
-    if newHour < 4:
-        newDay = newDay - 1
-    return newDay
 
 def getOrdinalDayThatCounts(timestamp):
     newDate = datetime.fromtimestamp(timestamp)
