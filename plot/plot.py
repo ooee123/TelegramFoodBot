@@ -4,6 +4,7 @@ mpl.use("Agg")
 import matplotlib.pyplot as plt
 import datetime as dt
 from matplotlib.ticker import FuncFormatter as ff
+from TimestampUtil import getOrdinalDayThatCounts
 
 #SINCE_HOW_MANY_DAYS = 14
 
@@ -12,8 +13,8 @@ from matplotlib.ticker import FuncFormatter as ff
 def plotFirstMorningPerDay(firstMorningPerDay, saveas, title):
     #graphBeginning = dt.today() - timedelta
     #firstMorningPerDay = [x in firstMorningPerDay.keys() if dt.fromtimestamp(x) > graphBeginning]
-    days = [int(day) for day in firstMorningPerDay.keys()]
-    minutes = [timestamp2minuteOfDay(day) for day in firstMorningPerDay.values()]
+    days = [getOrdinalDayThatCounts(day) for day in firstMorningPerDay]
+    minutes = [timestamp2minuteOfDay(day) for day in firstMorningPerDay]
     plt = plotMinutesVsDay(days, minutes, saveas)
     plt.title(title)
     plt.savefig(saveas, bbox_inches='tight')

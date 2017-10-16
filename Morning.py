@@ -1,4 +1,4 @@
-from datetime import datetime
+from TimestampUtil import getOrdinalDayThatCounts
 import time
 import json
 
@@ -91,7 +91,6 @@ class MorningEntry(JsonSerializable):
         today = getOrdinalDayThatCounts(time.time())
         if today - previousDay > 1:
             self.currentStreak = 0
-        self.days = days
         self.highestStreak = highestStreak
         self.currentStreak = currentStreak
 
@@ -121,15 +120,17 @@ class MorningEntry(JsonSerializable):
 
     def setLastMorning(self, timestamp):
         if self.countsAsNewDay(timestamp):
+            self.json["firstMorningPerDay"].append(timestamp)
             self.setFirstMorningOnDay(timestamp)
             if self.isContinuingStreak(timestamp):
                 self.currentStreak += 1
             else:
                 self.currentStreak = 1
-            self.highestStreak = max(self.highestStreak, self.currentStreak)
+            if self.currentStreak > self.highestStreak:
+                self.highestStreak = self.currentStreak
 
     def isContinuingStreak(self, timestamp):
-        return getOrdinalDayThatCounts(timestamp) == getOrdinalDayThatCounts(self.getLastMorning()) + 1
+        return getOrdinalDayThatCounts(timestamp) - getOrdinalDayThatCounts(self.getLastMorning()) == 1
 
     def countsAsNewDay(self, timestamp):
         newDay = getOrdinalDayThatCounts(timestamp)
@@ -138,11 +139,6 @@ class MorningEntry(JsonSerializable):
 
     def getFirstMorningPerDay(self):
         return self.json["firstMorningPerDay"]
-
-    def setFirstMorningOnDay(self, timestamp):
-        day = getOrdinalDayThatCounts(timestamp)
-        if day not in self.days:
-            self.json["firstMorningPerDay"].append(timestamp)
 
     def __json__(self):
         return self.json
@@ -155,11 +151,3 @@ class MorningEntry(JsonSerializable):
         if todayOrdinalDay - lastOrdinalDay > 1:
             self.currentStreak = 0
         return "{name}: Ttl: {total}, Str: {streak}, Hi: {high}".format(name=self.getName(), total=self.getTotalMorningsCount(), streak=self.getCurrentStreak(), high=self.getHighestStreak())
-
-def getOrdinalDayThatCounts(timestamp):
-    newDate = datetime.fromtimestamp(timestamp)
-    newHour = newDate.hour
-    newDay = newDate.toordinal()
-    if newHour < 4:
-        newDay = newDay - 1
-    return newDay
