@@ -3,12 +3,22 @@ import matplotlib as mpl
 mpl.use("Agg")
 import matplotlib.pyplot as plt
 import datetime as dt
-from matplotlib.ticker import FuncFormatter as ff
+import matplotlib.dates as mdates
 from TimestampUtil import getOrdinalDayThatCounts
 
+LIMIT = 14
 #SINCE_HOW_MANY_DAYS = 14
 
 #timedelta = dt.timedelta(SINCE_HOW_MANY_DAYS)
+
+majorDayLocator = mdates.DayLocator(interval=3)
+everyDayLocator = mdates.DayLocator(interval=1)
+dayFormatter = mdates.DateFormatter('%a %b %d')
+
+majorHourLocator = mdates.HourLocator(interval=2)
+everyHourLocator = mdates.HourLocator(interval=1)
+hourFormatter = mdates.DateFormatter('%I:%M %p')
+halfHourLocator = mdates.MinuteLocator(byminute=30)
 
 def plotFirstMorningPerDay(firstMorningPerDay, saveas, title):
     #graphBeginning = dt.today() - timedelta
@@ -23,9 +33,18 @@ def plotMinutesVsDay(days, minutes, saveas, annotate=False):
     fig = plt.figure()
     ax = fig.add_subplot(1, 1, 1)
     ax.xaxis_date()
-    ax.yaxis.set_major_formatter(ff(m2hm))
 
-    ax.plot_date(days, minutes)
+    ax.plot_date(days, mpl.dates.date2num(minutes))
+    if len(days) < LIMIT:
+        ax.xaxis.set_major_locator(everyDayLocator)
+    else:
+        ax.xaxis.set_major_locator(majorDayLocator)
+        ax.xaxis.set_minor_locator(everyDayLocator)
+    ax.xaxis.set_major_formatter(dayFormatter)
+
+    ax.yaxis.set_major_locator(everyHourLocator)
+    ax.yaxis.set_minor_locator(halfHourLocator)
+    ax.yaxis.set_major_formatter(hourFormatter)
 
     if annotate:
         for xy in zip(days, minutes):
@@ -33,14 +52,9 @@ def plotMinutesVsDay(days, minutes, saveas, annotate=False):
 
     fig.autofmt_xdate()
     return plt
- 
-def m2hm(minutes, i):
-    h = int(minutes / 60)
-    m = int(minutes % 60)
-    return '%(h)02d:%(m)02d' % {'h':h,'m':m}
 
 def timestamp2minuteOfDay(timestamp):
     datetime = dt.datetime.fromtimestamp(timestamp)
     hours = datetime.time().hour
     minutes = datetime.time().minute
-    return hours * 60 + minutes
+    return dt.datetime(dt.MINYEAR, 1, 1, hours, minutes)
