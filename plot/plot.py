@@ -39,11 +39,12 @@ def axSetup(ax):
         ax.xaxis.set_major_locator(majorDayLocator)
         ax.xaxis.set_minor_locator(everyDayLocator)
 
-    if True:
+    if False:
         ax.yaxis.set_major_locator(everyHourLocator)
         ax.yaxis.set_minor_locator(quarterHourLocator)
     else:
         ax.yaxis.set_major_locator(majorHourLocator)
+        ax.yaxis.set_minor_locator(everyHourLocator)
 
     ax.xaxis.set_major_formatter(dayFormatter)
     ax.yaxis.set_major_formatter(hourFormatter)
@@ -66,4 +67,4 @@ def timestamp2minuteOfDay(timestamp):
     datetime = dt.datetime.fromtimestamp(timestamp)
     hours = datetime.time().hour
     minutes = datetime.time().minute
-    return dt.datetime(dt.MINYEAR, 1, 1, hours, minutes)
+    return dt.datetime(dt.MINYEAR, 1, 2, hours, minutes)

@@ -119,7 +119,7 @@ class MorningEntry(JsonSerializable):
                 if currentDay not in earliestMornings or timestamp < earliestMornings[currentDay]["timestamp"]:
                     earliestMornings[currentDay] = {"timestamp": timestamp, "ids": [id]}
                 elif timestamp == earliestMornings[currentDay]["timestamp"]:
-                    earliestMorning[currentDay]["ids"].append(id)
+                    earliestMornings[currentDay]["ids"].append(id)
 
         # This is also caught only when displaying, i.e. morningstats
         #today = getOrdinalDayThatCounts(time.time())
@@ -151,13 +151,13 @@ class MorningEntry(JsonSerializable):
 
     def setLastMorning(self, timestamp):
         if self.countsAsNewDay(timestamp):
-            self.json["firstMorningPerDay"].append(timestamp)
             if self.isContinuingStreak(timestamp):
                 self.currentStreak += 1
             else:
                 self.currentStreak = 1
             if self.currentStreak > self.highestStreak:
                 self.highestStreak = self.currentStreak
+            self.json["firstMorningPerDay"].append(timestamp)
 
     def isContinuingStreak(self, timestamp):
         return getOrdinalDayThatCounts(timestamp) - getOrdinalDayThatCounts(self.getLastMorning()) == 1
