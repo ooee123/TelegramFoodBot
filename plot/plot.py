@@ -39,7 +39,7 @@ def axSetup(ax):
         ax.xaxis.set_major_locator(majorDayLocator)
         ax.xaxis.set_minor_locator(everyDayLocator)
 
-    if False:
+    if True:
         ax.yaxis.set_major_locator(everyHourLocator)
         ax.yaxis.set_minor_locator(quarterHourLocator)
     else:
@@ -58,11 +58,13 @@ def plotMinutesVsDay(ax, firstMorningPerDay, saveas, earliestMorning=None):
     if earliestMorning:
         days = [getOrdinalDayThatCounts(day) for day in earliestMorning]
         minutes = [timestamp2minuteOfDay(day) for day in earliestMorning]
+        for day in days:
+            print(day)
+        for minute in minutes:
+            print(minute)
         ax.plot_date(days, mpl.dates.date2num(minutes), 'yo')
         for xy in zip(days, minutes):
-            pos = (xy[0], xy[1] + dt.timedelta(minutes=10))
-            ax.annotate(xy[1].strftime('%I:%M'), xy=pos, textcoords='data', va='top', ha='center')
-
+            ax.annotate(xy[1].strftime('%I:%M'), xy=xy, textcoords='data', va='top', ha='center')
 def timestamp2minuteOfDay(timestamp):
     datetime = dt.datetime.fromtimestamp(timestamp)
     hours = datetime.time().hour
