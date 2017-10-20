@@ -33,7 +33,13 @@ def main():
     morningGraph_handler = CommandHandler('morningGraph', morningBot.morningGraph)
     dispatcher.add_handler(morningGraph_handler)
 
+    dispatcher.add_error_handler(print_error_callback)
+
     updater.start_polling(timeout=30)
+
+def print_error_callback(bot, update, error):
+    logger = logging.getLogger(__name__)
+    logger.error("Exception: {error}, with update {update}".format(error=error, update=update))
 
 class MorningStickerFilter(BaseFilter):
     def filter(self, message):
