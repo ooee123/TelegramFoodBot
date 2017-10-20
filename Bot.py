@@ -33,7 +33,7 @@ def main():
     morningGraph_handler = CommandHandler('morningGraph', morningBot.morningGraph)
     dispatcher.add_handler(morningGraph_handler)
 
-    updater.start_polling()
+    updater.start_polling(timeout=30)
 
 class MorningStickerFilter(BaseFilter):
     def filter(self, message):
