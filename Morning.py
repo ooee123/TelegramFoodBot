@@ -80,17 +80,6 @@ class Morning:
             plot.plotFirstMorningPerDay(firstMorningPerDay, saveas, senderName, earliestMornings)
             bot.send_photo(chat_id=self.chatroom, photo=open(saveas, "rb"))
 
-    def start(self):
-        dispatcher = self.updater.dispatcher
-        morning_sticker_handler = MessageHandler(MorningStickerFilter(), self.morningSticker)
-        dispatcher.add_handler(morning_sticker_handler)
-        morningStats_handler = CommandHandler('morningStats', self.morningStats)
-        dispatcher.add_handler(morningStats_handler)
-        morningGraph_handler = CommandHandler('morningGraph', self.morningGraph)
-        dispatcher.add_handler(morningGraph_handler)
-
-        self.updater.start_polling()
-
 class MorningEntry(JsonSerializable):
     def __init__(self, id, name, json=None, earliestMornings=None):
         if json == None:
