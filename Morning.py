@@ -1,8 +1,7 @@
-from TimestampUtil import getOrdinalDayThatCounts
 import time
-import json
 
 from JsonSerializable import JsonSerializable
+from TimestampUtil import getOrdinalDayThatCounts
 from plot import plot
 
 MORNING_STICKER = "CAADAgADEQEAAtQ7SgJzg0f_OmyrNQI"
@@ -19,7 +18,7 @@ class Morning:
         self.earliestMornings = self.switchEarliestMorningDimension(earliestMornings)
 
     def switchEarliestMorningDimension(self, earliestMornings):
-        if earliestMornings != None:
+        if earliestMornings is not None:
             newDimension = {}
             mornings = earliestMornings.values()
             for morning in mornings:
@@ -34,7 +33,7 @@ class Morning:
 
     def initConfig(self, config, earliestMornings=None):
         users = config.get("users")
-        if users == None:
+        if users is None:
             config.set("users", {})
         else:
             newUsers = {}
@@ -43,7 +42,8 @@ class Morning:
             config.set("users", newUsers)
         return config
             
-    def morningSticker(self, bot, update, args={}):
+    def morningSticker(self, bot, update):
+        print("Start morning sticker", flush=True)
         global latestRecordedDay
         senderId = update.message.from_user.id 
         senderName = update.message.from_user.first_name
@@ -52,14 +52,17 @@ class Morning:
             self.users[senderId] = MorningEntry(senderId, senderName)
         self.users[senderId].setLastMorning(messageDate)
         self.config.saveConfig()
-        if self.earliestMornings != None and getOrdinalDayThatCounts(messageDate) > latestRecordedDay:
+
+        print("Get Ordinal Day", flush=True)
+        ordinalDay = getOrdinalDayThatCounts(messageDate)
+        if self.earliestMornings is not None and ordinalDay > latestRecordedDay:
             if senderId not in self.earliestMornings:
                 self.earliestMornings[senderId] = [messageDate]
             else:
                 self.earliestMornings[senderId].append(messageDate)
-            latestRecordedDay = getOrdinalDayThatCounts(messageDate)
+            latestRecordedDay = ordinalDay
         
-    def morningStats(self, bot, update, args={}):
+    def morningStats(self, bot, update):
         sortedMornings = sorted(self.users.values(), key=lambda entry: entry.getTotalMorningsCount(), reverse=True)
         todayOrdinalDay = getOrdinalDayThatCounts(time.time())
         strings = [morning.statsString(todayOrdinalDay) for morning in sortedMornings]
@@ -67,7 +70,7 @@ class Morning:
         if text:
             bot.send_message(chat_id=self.chatroom, text=text)
 
-    def morningGraph(self, bot, update, args={}):
+    def morningGraph(self, bot, update):
         senderId = update.message.from_user.id 
         if senderId in self.users:
             senderName = self.users[senderId].getName()
@@ -80,9 +83,14 @@ class Morning:
             plot.plotFirstMorningPerDay(firstMorningPerDay, saveas, senderName, earliestMornings)
             bot.send_photo(chat_id=self.chatroom, photo=open(saveas, "rb"))
 
+    def morningGraphAll(self, bot, _):
+        saveas = "everyone.png"
+        plot.plotFirstMorningPerDayAll(self.users, saveas, "Everyone's Mornings")
+        bot.send_photo(chat_id=self.chatroom, photo=open(saveas, "rb"))
+
 class MorningEntry(JsonSerializable):
     def __init__(self, id, name, json=None, earliestMornings=None):
-        if json == None:
+        if json is None:
             json = {"firstMorningPerDay": []}
         json["name"] = name
         self.json = json
@@ -104,7 +112,7 @@ class MorningEntry(JsonSerializable):
             if currentDay > latestRecordedDay:
                 latestRecordedDay = currentDay
 
-            if earliestMornings != None:
+            if earliestMornings is not None:
                 if currentDay not in earliestMornings or timestamp < earliestMornings[currentDay]["timestamp"]:
                     earliestMornings[currentDay] = {"timestamp": timestamp, "ids": [id]}
                 elif timestamp == earliestMornings[currentDay]["timestamp"]:
