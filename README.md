@@ -9,3 +9,4 @@ Like I said. Dumb.
 * Python3
 * requests module
 * matplotlib
+* seaborn
