@@ -5,7 +5,6 @@ from telegram.ext import BaseFilter
 from telegram.ext import Updater
 from telegram.ext import MessageHandler
 from telegram.ext import CommandHandler
-from telegram.ext import Filters 
 
 from Morning import Morning
 from Morning import MORNING_STICKER
@@ -32,12 +31,14 @@ def main():
     dispatcher.add_handler(morningStats_handler)
     morningGraph_handler = CommandHandler('morningGraph', morningBot.morningGraph)
     dispatcher.add_handler(morningGraph_handler)
+    morningGraphAll_handler = CommandHandler('morningGraphAll', morningBot.morningGraphAll)
+    dispatcher.add_handler(morningGraphAll_handler)
 
     dispatcher.add_error_handler(print_error_callback)
 
     updater.start_polling(timeout=30)
 
-def print_error_callback(bot, update, error):
+def print_error_callback(_, update, error):
     logger = logging.getLogger(__name__)
     logger.error("Exception: {error}, with update {update}".format(error=error, update=update))
 
