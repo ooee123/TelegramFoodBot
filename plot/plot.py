@@ -1,13 +1,12 @@
 #!/usr/bin/python3
 import matplotlib as mpl
+# matplotlib setup
+mpl.use("Agg")
 import matplotlib.pyplot
 import datetime as dt
 import matplotlib.dates as mdates
 import seaborn as seaborn
 from TimestampUtil import getOrdinalDayThatCounts
-
-# matplotlib setup
-mpl.use("Agg")
 
 LIMIT = 14
 #SINCE_HOW_MANY_DAYS = 14
