@@ -25,7 +25,9 @@ quarterHourLocator = mdates.MinuteLocator(byminute=[15,30,45])
 def plotFirstMorningPerDayAll(morningEntries, saveas, title):
     ax = setupDateGraph()
     for morningEntry in morningEntries.values():
-        plotMinutesVsDay(ax, morningEntry.getFirstMorningPerDay(45), label=morningEntry.getName(), linestyle='solid')
+        firstMornings = morningEntry.getFirstMorningPerDay(30)
+        if firstMornings:
+            plotMinutesVsDay(ax, firstMornings, label=morningEntry.getName(), linestyle='solid')
     ax.legend()
     saveDateGraph(ax, saveas, title)
 

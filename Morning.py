@@ -1,7 +1,10 @@
 import time
+import datetime
+import statistics
 
 from JsonSerializable import JsonSerializable
 from TimestampUtil import getOrdinalDayThatCounts
+from TimestampUtil import getMinuteOfDay
 from plot import plot
 
 MORNING_STICKER = "CAADAgADEQEAAtQ7SgJzg0f_OmyrNQI"
@@ -68,9 +71,34 @@ class Morning:
         text = "\n".join(strings)
         if text:
             bot.send_message(chat_id=self.chatroom, text=text)
+        
+    def morningStatistics(self, bot, update, args={}):
+        days = None
+        descriptor = "lifetime"
+        if args:
+            try:
+                days = int(args[0])
+                descriptor = "last " + str(days) + " days"
+            except TypeError:
+                pass 
+        senderId = update.message.from_user.id 
+        firstMorningPerDay = self.users[senderId].getFirstMorningPerDay(days)
+        if firstMorningPerDay:
+            print(descriptor)
+            minutesOfDay = [getMinuteOfDay(x) for x in firstMorningPerDay]
+            mean = int(round(statistics.mean(minutesOfDay)))
+            mean = datetime.time(int(mean / 60), int(mean % 60))
+            pstdev = round(statistics.pstdev(minutesOfDay), 2)
+            earliestMornings = self.earliestMornings[senderId]
+            earliestMornings = [x for x in earliestMornings if x in firstMorningPerDay]
+            name = self.users[senderId].getName()
+            print(descriptor)
+
+            text = "{name}'s {descriptor} stats:\nMean: {mean}\nStdDev: {pstdev}m\nMornings: {mornings}\nEarliest Count: {earliestMornings}".format(name=name, descriptor=descriptor, mean=mean.strftime("%I:%M%p"), pstdev=pstdev, mornings=len(firstMorningPerDay), earliestMornings=len(earliestMornings))
+            bot.send_message(chat_id=self.chatroom, text=text)
 
     def morningGraph(self, bot, update, args={}):
-        days = 45
+        days = 30
         if args:
             try:
                 days = int(args[0])
