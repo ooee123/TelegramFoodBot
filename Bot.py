@@ -43,6 +43,9 @@ def main():
     morningGraph_handler = CommandHandler('morningStatistics', morningBot.morningStatistics, pass_args=True)
     dispatcher.add_handler(morningGraph_handler)
 
+    morningGraph_handler = CommandHandler('accolades', morningBot.accolades)
+    dispatcher.add_handler(morningGraph_handler)
+
     dispatcher.add_error_handler(print_error_callback)
 
     updater.start_polling(timeout=30)

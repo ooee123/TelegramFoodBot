@@ -84,19 +84,77 @@ class Morning:
         senderId = update.message.from_user.id 
         firstMorningPerDay = self.users[senderId].getFirstMorningPerDay(days)
         if firstMorningPerDay:
-            print(descriptor)
             minutesOfDay = [getMinuteOfDay(x) for x in firstMorningPerDay]
             mean = int(round(statistics.mean(minutesOfDay)))
             mean = datetime.time(int(mean / 60), int(mean % 60))
             pstdev = round(statistics.pstdev(minutesOfDay), 2)
+            pstDevStr = self.toStdDevStr(pstdev)
             earliestMornings = self.earliestMornings[senderId]
             earliestMornings = [x for x in earliestMornings if x in firstMorningPerDay]
+            earliestMinuteOfDay = min(minutesOfDay)
+            earliestTime = datetime.time(int(earliestMinuteOfDay / 60), int(earliestMinuteOfDay % 60))
             name = self.users[senderId].getName()
-            print(descriptor)
 
-            text = "{name}'s {descriptor} stats:\nMean: {mean}\nStdDev: {pstdev}m\nMornings: {mornings}\nEarliest Count: {earliestMornings}".format(name=name, descriptor=descriptor, mean=mean.strftime("%I:%M%p"), pstdev=pstdev, mornings=len(firstMorningPerDay), earliestMornings=len(earliestMornings))
+            text = "{name}'s {descriptor} stats:\nMean: {mean}\nStdDev: {pstDevStr}\nMornings: {mornings}\nEarliest count: {earliestMornings}\nEarliest time: {earliestTime}".format(name=name, descriptor=descriptor, mean=mean.strftime("%I:%M%p"), pstDevStr=pstDevStr, mornings=len(firstMorningPerDay), earliestMornings=len(earliestMornings), earliestTime=earliestTime.strftime("%I:%M%p"))
             bot.send_message(chat_id=self.chatroom, text=text)
 
+    def accolades(self, bot, update, args={}):
+        results = {}
+        CONSISTENT_WAKER = "Most consistent waker"
+        EARLIEST_MEAN_WAKER = "Earliest mean waker"
+
+        # Qualify: > 
+        qualifyPercentage = 0.75
+        days = 30
+        # Consistent waker (quantity, who)
+        # Earliest mean waker (quantity, who)
+        # Earliest waker (quantity, date, who)
+        # Most earliests (quantity, who)
+        # Latest mean waker
+        # Most last earliests
+
+        for morningEntry in self.users.values():
+            firstMornings = morningEntry.getFirstMorningPerDay(days)
+            if len(firstMornings) >= days * qualifyPercentage:
+                minutesOfDay = [getMinuteOfDay(x) for x in firstMornings]
+                pstdev = round(statistics.pstdev(minutesOfDay), 2)
+                pstDevStr = "StdDev " + self.toStdDevStr(pstdev)
+                entry = (morningEntry.getName(), pstdev, pstDevStr)
+                qualifier = lambda res: pstdev < res
+                self.enterEntryIfQualifies(results, CONSISTENT_WAKER, qualifier, entry)
+                        
+                mean = int(round(statistics.mean(minutesOfDay)))
+                meanStr = datetime.time(int(mean / 60), int(mean % 60)).strftime("%I:%M%p")
+                entry = (morningEntry.getName(), mean, meanStr)
+                qualifier = lambda res: mean < res
+                self.enterEntryIfQualifies(results, EARLIEST_MEAN_WAKER, qualifier, entry)
+
+        winners = []
+        for accolade in results:
+            result = results[accolade]
+            winner = "{description}: {name} of {result}".format(description=accolade, name=result[0], result=result[2])
+            winners.append(winner)
+            
+        winners = "Accolades of the past {days} days:\n".format(days=days) + "\n".join(winners)
+        if winners:
+            bot.send_message(chat_id=self.chatroom, text=winners)
+                
+    def enterEntryIfQualifies(self, results, key, qualifier, entry):
+        if key not in results or qualifier(results[key][1]):
+            results[key] = entry
+
+    def toStdDevStr(self, stdDev):
+        hour = int(stdDev / 60)
+        minute = int(stdDev % 60)
+        second = round(stdDev % 1 * 60)
+        if hour != 0:
+            return "{hour}h{minute}m{second}s".format(hour=hour, minute=minute, second=second)
+        else:
+            if minute != 0:
+                return "{minute}m{second}s".format(minute=minute, second=second)
+            else:
+                return "{second}s".format(second=second)
+                
     def morningGraph(self, bot, update, args={}):
         days = 30
         if args:
