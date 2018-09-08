@@ -31,7 +31,7 @@ def main():
     morningStats_handler = CommandHandler('morningStats', morningBot.morningStats)
     dispatcher.add_handler(morningStats_handler)
 
-    morningGraph_handler = CommandHandler('morningGraph', morningBot.morningGraph)
+    morningGraph_handler = CommandHandler('morningGraph', morningBot.morningGraph, pass_args=True)
     dispatcher.add_handler(morningGraph_handler)
     morningGraphAll_handler = CommandHandler('morningGraphAll', morningBot.morningGraphAll)
     dispatcher.add_handler(morningGraphAll_handler)

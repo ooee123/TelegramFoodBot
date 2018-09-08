@@ -53,7 +53,6 @@ class Morning:
         self.users[senderId].setLastMorning(messageDate)
         self.config.saveConfig()
 
-        print("Get Ordinal Day", flush=True)
         ordinalDay = getOrdinalDayThatCounts(messageDate)
         if self.earliestMornings is not None and ordinalDay > latestRecordedDay:
             if senderId not in self.earliestMornings:
@@ -62,7 +61,7 @@ class Morning:
                 self.earliestMornings[senderId].append(messageDate)
             latestRecordedDay = ordinalDay
         
-    def morningStats(self, bot, update):
+    def morningStats(self, bot, update, args={}):
         sortedMornings = sorted(self.users.values(), key=lambda entry: entry.getTotalMorningsCount(), reverse=True)
         todayOrdinalDay = getOrdinalDayThatCounts(time.time())
         strings = [morning.statsString(todayOrdinalDay) for morning in sortedMornings]
@@ -70,14 +69,21 @@ class Morning:
         if text:
             bot.send_message(chat_id=self.chatroom, text=text)
 
-    def morningGraph(self, bot, update):
+    def morningGraph(self, bot, update, args={}):
+        days = 45
+        if args:
+            try:
+                days = int(args[0])
+            except TypeError:
+                pass 
         senderId = update.message.from_user.id 
         if senderId in self.users:
             senderName = self.users[senderId].getName()
             saveas = senderName + ".png"
-            firstMorningPerDay = self.users[senderId].getFirstMorningPerDay()
+            firstMorningPerDay = self.users[senderId].getFirstMorningPerDay(days)
             if senderId in self.earliestMornings:
                 earliestMornings = self.earliestMornings[senderId]
+                earliestMornings = [x for x in earliestMornings if x in firstMorningPerDay]
             else:
                 earliestMornings = None
             plot.plotFirstMorningPerDay(firstMorningPerDay, saveas, senderName, earliestMornings)
@@ -180,8 +186,13 @@ class MorningEntry(JsonSerializable):
         lastDay = getOrdinalDayThatCounts(self.getLastMorning())
         return newDay > lastDay
 
-    def getFirstMorningPerDay(self):
-        return self.json["firstMorningPerDay"]
+    def getFirstMorningPerDay(self, lastNDays=None):
+        if lastNDays:
+            today = time.time()
+            afterTime = today - lastNDays * 24 * 60 * 60
+            return [x for x in self.json["firstMorningPerDay"] if x >= afterTime]
+        else:
+            return self.json["firstMorningPerDay"]
 
     def __json__(self):
         return self.json
