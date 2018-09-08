@@ -27,12 +27,17 @@ def main():
 
     morning_sticker_handler = MessageHandler(MorningStickerFilter(), morningBot.morningSticker)
     dispatcher.add_handler(morning_sticker_handler)
+
     morningStats_handler = CommandHandler('morningStats', morningBot.morningStats)
     dispatcher.add_handler(morningStats_handler)
+
     morningGraph_handler = CommandHandler('morningGraph', morningBot.morningGraph)
     dispatcher.add_handler(morningGraph_handler)
     morningGraphAll_handler = CommandHandler('morningGraphAll', morningBot.morningGraphAll)
     dispatcher.add_handler(morningGraphAll_handler)
+
+    morningGraph_handler = CommandHandler('downloadMornings', morningBot.downloadMornings)
+    dispatcher.add_handler(morningGraph_handler)
 
     dispatcher.add_error_handler(print_error_callback)
 

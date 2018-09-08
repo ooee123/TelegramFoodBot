@@ -88,6 +88,22 @@ class Morning:
         plot.plotFirstMorningPerDayAll(self.users, saveas, "Everyone's Mornings")
         bot.send_photo(chat_id=self.chatroom, photo=open(saveas, "rb"))
 
+    def downloadMornings(self, bot, update, args={}):
+        senderId = update.message.from_user.id 
+        if senderId in self.users:
+            senderName = self.users[senderId].getName()
+            saveas = senderName + ".txt"
+            firstMorningPerDay = self.users[senderId].getFirstMorningPerDay()
+            times = "\n".join([str(x) for x in firstMorningPerDay])
+            f = open(saveas, "w")
+            f.write(times)
+            f.close()
+            f = open(saveas, "rb")
+            
+            today = time.strftime("%Y-%m-%d")
+            
+            bot.send_document(chat_id=self.chatroom, document=f, filename=senderName + "." + today + ".txt")
+
 class MorningEntry(JsonSerializable):
     def __init__(self, id, name, json=None, earliestMornings=None):
         if json is None:
